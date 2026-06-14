@@ -134,6 +134,43 @@ int pintos_init(void) {
     run_actions(argv);
   } else {
     // TODO: no command line passed to kernel. Run interactively
+    char cmd[128];
+    int pos = 0;
+
+    while (1) {
+      printf("PKUOS> ");
+      pos = 0; // reset pos buffer of cmd
+
+      while (1) {
+        char c = input_getc();
+        putchar(c);
+
+        if (c == '\r' || c == '\n') {
+          putchar('\n');
+          cmd[pos] = '\0';
+          break; // cmd input done
+        }
+        else if (c == '\b' || c == 127) { // backspace
+          if (pos > 0) {
+            pos--;
+            printf("\b \b"); // delete one character on the terminal
+          }
+        }
+        else if (pos < 127) { // prevent buffer overflowed
+          cmd[pos++] = c;
+        }
+      }
+
+      if (strcmp(cmd, "whoami") == 0) {
+        printf("05261015\n"); // printf my student id
+      }
+      else if (strcmp(cmd, "exit") == 0) {
+        break; // exit the loop to let kernel done and end
+      }
+      else if (pos > 0) { // other command except enter
+        printf("invalid command\n");
+      }
+    }
   }
 
   /* Finish up. */
