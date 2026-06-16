@@ -5,6 +5,10 @@
 #include <list.h>
 #include <stdint.h>
 
+/* === NEW === */
+struct lock;
+/* =========== */
+
 /** States in a thread's life cycle. */
 enum thread_status {
   THREAD_RUNNING, /**< Running thread. */
@@ -86,12 +90,19 @@ struct thread {
   char name[16];             /**< Name (for debugging purposes). */
   uint8_t *stack;            /**< Saved stack pointer. */
   int priority;              /**< Priority. */
+
+	/* === NEW === */
+  int base_priority;					/**< Original priority of this thread */
+	struct list locks_held;			/**< List of all locks held by this thread */
+	struct lock *lock_waiting;	/**< Lock this thread is waiting for */
+  /* ============= */
+
   struct list_elem allelem;  /**< List element for all threads list. */
 
   /* Shared between thread.c and synch.c. */
   struct list_elem elem; /**< List element. */
 
-  /* === ADDED === */
+  /* === NEW === */
   int64_t wakeup_tick;       /**< Wake up time */
   /* ============= */
 
@@ -139,5 +150,11 @@ int thread_get_nice(void);
 void thread_set_nice(int);
 int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
+
+/* === NEW === */
+bool cmp_thread_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+void thread_donate_priority(void);
+void thread_recalc_priority(void);
+/* ============= */
 
 #endif /**< threads/thread.h */

@@ -81,7 +81,7 @@ int64_t timer_ticks(void) {
 }
 
 /* Compares two list_elem if wake-up time of a is less than that of b */
-static bool wakeup_less_func(const struct list_elem *a,
+static bool cmp_wakeup_less(const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux UNUSED) {
   struct thread *ta = list_entry(a, struct thread, elem);
@@ -97,22 +97,23 @@ int64_t timer_elapsed(int64_t then) { return timer_ticks() - then; }
    be turned on. */
 void timer_sleep(int64_t ticks) {
   int64_t start = timer_ticks();
+  if (ticks <= 0) return;
 
   ASSERT(intr_get_level() == INTR_ON);
   // while (timer_elapsed(start) < ticks) thread_yield();
 
 	/* === ADDED === */
 	/* get current thread pointer */
-	struct thread *current_thread = thread_current();
+	struct thread *cur = thread_current();
 	
 	/* calculate time to wake up */
-	current_thread->wakeup_tick = start + ticks;	
+	cur->wakeup_tick = start + ticks;	
 
 	/* disable interrupt to safely modify sleep_list */
 	enum intr_level old_level = intr_disable();		
 
 	/* insert current thread to the sleeping list (ascending order) and block */
-	list_insert_ordered(&sleep_list, &current_thread->elem, wakeup_less_func, NULL);
+	list_insert_ordered(&sleep_list, &cur->elem, cmp_wakeup_less, NULL);
 	thread_block();
 
 	/* restore interrupt */
@@ -184,6 +185,11 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
 		/* it is wake-up time */
 		e = list_remove(e);
 		thread_unblock(th);
+
+		/* Preempt the current thread if the waking thread has a higher priority */
+		if (th->priority > thread_current()->priority) {
+			intr_yield_on_return();
+		}
 	}
 	/* ============= */
 }
