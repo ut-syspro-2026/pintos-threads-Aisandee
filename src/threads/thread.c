@@ -158,6 +158,7 @@ void thread_donate_priority(void) {
   struct thread *cur = thread_current();
   struct lock *lock = cur->lock_waiting;
   int depth = 0;
+  enum intr_level old_level = intr_disable();
 
   /* Loop down the lock chain and donates priority to the lock holders */
   while (lock != NULL && lock->holder != NULL && depth < MAX_NESTED_DEPTH) {
@@ -183,11 +184,14 @@ void thread_donate_priority(void) {
     lock = holder->lock_waiting;
     depth++;
   }
+
+  intr_set_level(old_level); 
 }
 
 /** Recalculate the current thread's priority to highest priority of threads waiting for other held locks */
 void thread_recalc_priority(void) {
   struct thread *cur = thread_current();
+  enum intr_level old_level = intr_disable();
 
   /* reset base priority */
   cur->priority = cur->base_priority;
@@ -212,6 +216,8 @@ void thread_recalc_priority(void) {
       }
     }
   }
+  
+  intr_set_level(old_level); 
 }
 
 /* ============= */
@@ -399,6 +405,7 @@ void thread_set_priority(int new_priority) {
 
   /* === NEW === */ // Priority Donation
   struct thread *cur = thread_current();
+  enum intr_level old_level = intr_disable();
 
   cur->base_priority = new_priority;
   thread_recalc_priority();
@@ -413,6 +420,8 @@ void thread_set_priority(int new_priority) {
       thread_yield();
     }
   }
+
+  intr_set_level(old_level); 
   /* =========== */
 }
 
